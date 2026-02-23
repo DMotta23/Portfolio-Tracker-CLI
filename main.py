@@ -329,7 +329,6 @@ def portfolio_summary(portfolio):
     print(f"Total value: {total_value:.2f}")
     print(f"Total unrealized P/L: {total_unreal:.2f} ({total_unreal_pct:.2f}%)\n")
 
-    # UPDATED header (added Unreal %)
     print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
           f" {'Unreal P/L':>12} {'Unreal P/L (%)':>10} {'Weight':>8}")
     print("-" * 96)
