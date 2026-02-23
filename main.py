@@ -13,17 +13,17 @@ def show_basic_ticker_info(ticker):
     try:
         tk = yf.Ticker(ticker)
 
-        info = tk.info  # may be slow sometimes, but simplest
+        info = tk.info  # dict with company data
         exchange = info.get("exchange", "N/A")
         currency = info.get("currency", "N/A")
 
-        hist = tk.history(period="1d")
-        if hist.empty:
+        hist = tk.history(period="1d") # fetching recent price history, only need day 1
+        if hist.empty: # checking if yahoo returned any data
             print("\nWarning: No price data found.")
-            print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA).")
+            print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA, .L, .PA).")
             return False
         else:
-            price = float(hist["Close"].iloc[-1])
+            price = float(hist["Close"].iloc[-1]) # selecting close column, and returning the last ROW
 
         print("\n--- Ticker info ---")
         print("Exchange:", exchange)
@@ -32,7 +32,7 @@ def show_basic_ticker_info(ticker):
         print("-------------------\n")
         return True
 
-    except Exception:
+    except Exception: # fetching exceptions which are not user errors
         print("Could not fetch ticker info.")
         return False
 
@@ -120,7 +120,7 @@ def fetch_prices(tickers):
                 prices[t] = None
             else:
                 prices[t] = float(hist["Close"].iloc[-1])
-        except:
+        except Exception:
             prices[t] = None
     return prices
 
@@ -140,7 +140,7 @@ def manual_fix_prices(prices):
                         continue
                     fixed[t] = val
                     break
-                except:
+                except ValueError:
                     print("Invalid number.")
     return fixed
 
@@ -245,7 +245,7 @@ def rebalance_suggestions(portfolio):
                 targets[t] = w
                 total_w += w
                 break
-            except:
+            except ValueError:
                 print("Invalid number.")
 
     if total_w == 0: # error handling, because total weight (denominator) cannot be zero
@@ -307,5 +307,5 @@ def main():
             print("Invalid option.")
 
 
-if __name__ == "__main__": #chatgpt recommended this instead of just main()
+if __name__ == "__main__": #ChatGPT recommended this instead of just main()
     main()
