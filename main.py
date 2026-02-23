@@ -201,7 +201,7 @@ def view_stock_info_from_holdings(portfolio):
         currency = info.get("currency", "N/A")
 
         # financials
-        market_cap = info.get("marketCap")
+        market_cap = info.get("marketCap") # returns None if it doesn't exist
         revenue = info.get("totalRevenue")
         net_income = info.get("netIncomeToCommon")
 
@@ -294,24 +294,45 @@ def portfolio_summary(portfolio):
     prices = manual_fix_prices(prices)
 
     total_value = 0.0
+    total_cost = 0.0
+    total_unreal = 0.0
     rows = []
 
     for t in tickers:
         shares = portfolio[t]["shares"]
         avg_cost = portfolio[t]["avg_cost"]
         price = prices[t]
+
         value = shares * price
+        cost = shares * avg_cost
         unreal = (price - avg_cost) * shares
+
+        # unrealized % for each position
+        if avg_cost > 0:
+            unreal_pct = ((price - avg_cost) / avg_cost) * 100
+        else:
+            unreal_pct = 0.0
+
         total_value = total_value + value
-        rows.append([t, shares, avg_cost, price, value, unreal])
+        total_cost = total_cost + cost
+        total_unreal = total_unreal + unreal
+
+        rows.append([t, shares, avg_cost, price, value, unreal, unreal_pct])
+
+    # total unrealized % (based on total cost)
+    if total_cost > 0:
+        total_unreal_pct = (total_unreal / total_cost) * 100
+    else:
+        total_unreal_pct = 0.0
 
     print("\n===== PORTFOLIO SUMMARY =====")
-    print(f"Total value: {total_value:.2f}\n")
+    print(f"Total value: {total_value:.2f}")
+    print(f"Total unrealized P/L: {total_unreal:.2f} ({total_unreal_pct:.2f}%)\n")
 
-    # line below prints summary as float and controls width
+    # UPDATED header (added Unreal %)
     print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
-          f" {'Unreal P/L':>12} {'Weight':>8}")
-    print("-" * 86)
+          f" {'Unreal P/L':>12} {'Unreal P/L (%)':>10} {'Weight':>8}")
+    print("-" * 96)
 
     best_t = None
     best_pl = None
@@ -319,16 +340,16 @@ def portfolio_summary(portfolio):
     worst_pl = None
 
     for r in rows:
-        t, shares, avg_cost, price, value, unreal = r # assigning a name to each value
+        t, shares, avg_cost, price, value, unreal, unreal_pct = r  # assigning name to each value
+
         if total_value > 0:
             weight = (value / total_value) * 100
         else:
             weight = 0
 
         print(f"{t:<8} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f}"
-              f" {unreal:>12.2f} {weight:>7.2f}%")
+              f" {unreal:>12.2f} {unreal_pct:>9.2f}% {weight:>7.2f}%")
 
-        # iterating through each stock and seeing which one has the best and worst P/L
         if best_pl is None or unreal > best_pl:
             best_pl = unreal
             best_t = t
@@ -398,7 +419,7 @@ def rebalance_suggestions(portfolio):
         target_val = (targets[t] / 100) * total_value
         gap = target_val - current_val
 
-        price = prices[t]  # NEW: needed to convert € gap to shares
+        price = prices[t]
 
         if gap > 0:
             if price > 0:
