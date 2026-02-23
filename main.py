@@ -19,21 +19,22 @@ def show_basic_ticker_info(ticker):
 
         hist = tk.history(period="1d")
         if hist.empty:
-            price = None
+            print("\nWarning: No price data found.")
+            print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA).")
+            return False
         else:
             price = float(hist["Close"].iloc[-1])
 
         print("\n--- Ticker info ---")
         print("Exchange:", exchange)
         print("Currency:", currency)
-        if price is not None:
-            print(f"Current price: {price:.2f}")
-        else:
-            print("Current price: N/A")
+        print(f"Current price: {price:.2f}")
         print("-------------------\n")
+        return True
 
     except Exception:
-        print("(Could not fetch ticker info — continuing anyway.)")
+        print("Could not fetch ticker info.")
+        return False
 
 
 # ---------------------------
@@ -66,13 +67,14 @@ def manage_holdings(portfolio):
                 print("Ticker cannot be empty.")
                 continue
 
-            # show basic info after ticker is entered
-            show_basic_ticker_info(ticker)
+            # show basic info after ticker is entered; if False, it skips saving and restarts while loop
+            if show_basic_ticker_info(ticker) == False:
+                continue
 
             try:
                 shares = float(input("Shares: ").strip())
                 avg_cost = float(input("Average cost per share: ").strip())
-            except:
+            except ValueError:
                 print("Invalid number.")
                 continue
 
@@ -299,7 +301,7 @@ def main():
         elif choice == "3":
             rebalance_suggestions(portfolio)
         elif choice == "0":
-            print("Bye!")
+            print("Goodbye!")
             break
         else:
             print("Invalid option.")
