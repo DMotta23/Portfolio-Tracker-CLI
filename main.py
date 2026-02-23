@@ -1,6 +1,7 @@
 #Author: Diogo Terra Simões da Motta - 2nd Year BIE
 #Course: Programming for Economists II
 import yfinance as yf
+import matplotlib.pyplot as plt
 
 
 # ---------------------------
@@ -16,6 +17,7 @@ def print_menu():
     print("2) Portfolio summary")
     print("3) Rebalance suggestions")
     print("4) View stock info from holdings")
+    print("5) Trendline price chart (1w / 1m / 1y)")
     print("0) Exit")
 
 
@@ -303,6 +305,111 @@ def view_stock_info_from_holdings(portfolio):
         print("Could not fetch company info right now.")
 
 
+def plot_price_trend_from_holdings(portfolio):
+    """
+    Plots a simple trendline chart of a selected holding's price.
+    :param portfolio: dictionary of holdings
+    :return: None
+    """
+    if len(portfolio) == 0:
+        print("\nPortfolio is empty. Add holdings first.")
+        return
+
+    tickers = list(portfolio.keys())
+
+    print("\n-- Available holdings --")
+    for i in range(len(tickers)):
+        print(f"{i+1}) {tickers[i]}")
+    print("0) Back")
+
+    choice = input("Choose a stock number: ").strip()
+    if choice == "0":
+        return
+
+    try:
+        i_stock = int(choice) - 1
+    except ValueError:
+        print("Invalid option.")
+        return
+
+    if i_stock < 0 or i_stock >= len(tickers):
+        print("Invalid option.")
+        return
+
+    ticker = tickers[i_stock]
+
+    print("\nChoose a timeframe:")
+    print("1) 1w")
+    print("2) 1m")
+    print("3) ytd")
+    print("4) 1y")
+    print("5) 2y")
+    print("6) 5y")
+    print("7) 10y")
+    print("8) all")
+    tf = input("Choose: ").strip()
+
+    # timeframe mapping (simple and stable)
+    if tf == "1":
+        period = "5d"
+        interval = "1h"
+        title_tf = "1 Week"
+    elif tf == "2":
+        period = "1mo"
+        interval = "1d"
+        title_tf = "1 Month"
+    elif tf == "3":
+        period = "ytd"
+        interval = "1d"
+        title_tf = "YTD"
+    elif tf == "4":
+        period = "1y"
+        interval = "1wk"
+        title_tf = "1 Year"
+    elif tf == "5":
+        period = "2y"
+        interval = "1wk"
+        title_tf = "2 Years"
+    elif tf == "6":
+        period = "5y"
+        interval = "1wk"
+        title_tf = "5 Years"
+    elif tf == "7":
+        period = "10y"
+        interval = "1mo"
+        title_tf = "10 Years"
+    elif tf == "8":
+        period = "max"
+        interval = "1mo"
+        title_tf = "All Time"
+    else:
+        print("Invalid option.")
+        return
+
+    try:
+        tk = yf.Ticker(ticker)
+        hist = tk.history(period=period, interval=interval)
+
+        if hist.empty:
+            print("No price data found for this timeframe.")
+            return
+
+        dates = hist.index
+        closes = hist["Close"]
+
+        plt.figure()
+        plt.plot(dates, closes)
+        plt.title(f"{ticker} Price Trend ({title_tf})")
+        plt.xlabel("Date")
+        plt.ylabel("Close Price")
+        plt.xticks(rotation=30)
+        plt.tight_layout()
+        plt.show()
+
+    except Exception:
+        print("Could not fetch or plot price data right now.")
+
+
 # ---------------------------
 # SUMMARY
 # ---------------------------
@@ -494,6 +601,8 @@ def main():
             rebalance_suggestions(portfolio)
         elif choice == "4":
             view_stock_info_from_holdings(portfolio)
+        elif choice == "5":
+            plot_price_trend_from_holdings(portfolio)
         elif choice == "0":
             print("Goodbye!")
             break
