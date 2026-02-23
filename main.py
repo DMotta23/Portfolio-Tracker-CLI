@@ -2,6 +2,19 @@
 #Course: Programming for Economists II
 import yfinance as yf
 
+
+# ---------------------------
+# MENU
+# ---------------------------
+def print_menu():
+    print("\n==== PORTFOLIO MANAGER ====")
+    print("1) Manage holdings")
+    print("2) Portfolio summary")
+    print("3) Rebalance suggestions")
+    print("4) View stock info from holdings")
+    print("0) Exit")
+
+
 # ---------------------------
 # BASIC TICKER INFO
 # ---------------------------
@@ -35,17 +48,6 @@ def show_basic_ticker_info(ticker):
     except Exception: # fetching exceptions which are not user errors
         print("Could not fetch ticker info.")
         return False
-
-
-# ---------------------------
-# MENU
-# ---------------------------
-def print_menu():
-    print("\n==== PORTFOLIO MANAGER ====")
-    print("1) Manage holdings")
-    print("2) Portfolio summary (fetch prices)")
-    print("3) Rebalance suggestions")
-    print("0) Exit")
 
 
 # ---------------------------
@@ -109,7 +111,7 @@ def manage_holdings(portfolio):
 
 # ---------------------------
 # PRICES
-# simplest possible: fetch each ticker one by one
+# simplest possible: fetch each ticker one by one, if not, user inputs prices manually
 # ---------------------------
 def fetch_prices(tickers):
     prices = {}
@@ -143,6 +145,137 @@ def manual_fix_prices(prices):
                 except ValueError:
                     print("Invalid number.")
     return fixed
+
+
+# ---------------------------
+# STOCK INFO
+# ---------------------------
+def view_stock_info_from_holdings(portfolio):
+    if len(portfolio) == 0:
+        print("\nPortfolio is empty. Add holdings first.")
+        return
+
+    tickers = list(portfolio.keys())
+
+    print("\n-- Available holdings --")
+    for i in range(len(tickers)):
+        print(f"{i+1}) {tickers[i]}")
+    print("0) Back")
+
+    choice = input("Choose a stock number: ").strip()
+
+    if choice == "0":
+        return
+
+    try:
+        i_stock = int(choice) - 1
+    except ValueError:
+        print("Invalid option.")
+        return
+
+    if i_stock < 0 or i_stock >= len(tickers):
+        print("Invalid option.")
+        return
+    else:
+        ticker = tickers[i_stock]
+        print(f"\nFetching info for {ticker}...")
+
+    try:
+        tk = yf.Ticker(ticker)
+        info = tk.info
+
+        # price (also validates data exists)
+        hist = tk.history(period="1d")
+        if hist.empty:
+            print("No price data found for this ticker right now.")
+            return
+        else:
+            price = float(hist["Close"].iloc[-1])
+
+        # company basics
+        name = info.get("longName") or info.get("shortName") or "N/A" # first one that == True
+        country = info.get("country", "N/A")
+        sector = info.get("sector", "N/A")
+        industry = info.get("industry", "N/A")
+        exchange = info.get("exchange", "N/A")
+        currency = info.get("currency", "N/A")
+
+        # financials
+        market_cap = info.get("marketCap")
+        revenue = info.get("totalRevenue")
+        net_income = info.get("netIncomeToCommon")
+
+        # ratios / margins
+        pe = info.get("trailingPE")
+        pb = info.get("priceToBook")
+        roe = info.get("returnOnEquity")
+        gross_margin = info.get("grossMargins")
+        op_margin = info.get("operatingMargins")
+        profit_margin = info.get("profitMargins")
+
+        print("\n===== STOCK INFO =====")
+        print("Ticker:", ticker)
+        print("Name:", name)
+        print("Country:", country)
+        print("Sector:", sector)
+        print("Industry:", industry)
+        print("Exchange:", exchange)
+        print("Currency:", currency)
+        print(f"Current price: {price:.2f}")
+
+        print("\n--- Size & financials ---")
+
+        if market_cap is not None:
+            print("Market cap:", f"{market_cap:,.0f}")
+        else:
+            print("Market cap: N/A")
+
+        if revenue is not None:
+            print("Revenue (TTM):", f"{revenue:,.0f}")
+        else:
+            print("Revenue (TTM): N/A")
+
+        if net_income is not None:
+            print("Net income (TTM):", f"{net_income:,.0f}")
+        else:
+            print("Net income (TTM): N/A")
+
+        print("\n--- Ratios & margins ---")
+
+        if pe is not None:
+            print("P/E (TTM):", f"{pe:.2f}")
+        else:
+            print("P/E (TTM): N/A")
+
+        if pb is not None:
+            print("P/B:", f"{pb:.2f}")
+        else:
+            print("P/B: N/A")
+
+        if roe is not None:
+            print("ROE:", f"{roe * 100:.2f}%")
+        else:
+            print("ROE: N/A")
+
+        if gross_margin is not None:
+            print("Gross margin:", f"{gross_margin * 100:.2f}%")
+        else:
+            print("Gross margin: N/A")
+
+        if op_margin is not None:
+            print("Operating margin:", f"{op_margin * 100:.2f}%")
+        else:
+            print("Operating margin: N/A")
+
+        if profit_margin is not None:
+            print("Profit margin:", f"{profit_margin * 100:.2f}%")
+        else:
+            print("Profit margin: N/A")
+
+        print("======================\n")
+
+    except Exception:
+        print("Could not fetch company info right now.")
 
 
 # ---------------------------
@@ -300,6 +433,8 @@ def main():
             portfolio_summary(portfolio)
         elif choice == "3":
             rebalance_suggestions(portfolio)
+        elif choice == "4":
+            view_stock_info_from_holdings(portfolio)
         elif choice == "0":
             print("Goodbye!")
             break
