@@ -1,8 +1,9 @@
+#Author: Diogo Terra Simões da Motta - 2nd Year BIE
+#Course: Programming for Economists II
 import yfinance as yf
 
-
 # ---------------------------
-# BASIC TICKER INFO (NEW)
+# BASIC TICKER INFO
 # ---------------------------
 def show_basic_ticker_info(ticker):
     """
@@ -17,10 +18,10 @@ def show_basic_ticker_info(ticker):
         currency = info.get("currency", "N/A")
 
         hist = tk.history(period="1d")
-        if not hist.empty:
-            price = float(hist["Close"].iloc[-1])
-        else:
+        if hist.empty:
             price = None
+        else:
+            price = float(hist["Close"].iloc[-1])
 
         print("\n--- Ticker info ---")
         print("Exchange:", exchange)
@@ -65,7 +66,7 @@ def manage_holdings(portfolio):
                 print("Ticker cannot be empty.")
                 continue
 
-            # NEW: show basic info after ticker is entered
+            # show basic info after ticker is entered
             show_basic_ticker_info(ticker)
 
             try:
@@ -172,7 +173,9 @@ def portfolio_summary(portfolio):
     print("\n===== PORTFOLIO SUMMARY =====")
     print(f"Total value: {total_value:.2f}\n")
 
-    print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12} {'Unreal P/L':>12} {'Weight':>8}")
+    # line below prints summary as float and controls width
+    print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
+          f" {'Unreal P/L':>12} {'Weight':>8}")
     print("-" * 86)
 
     best_t = None
@@ -181,14 +184,16 @@ def portfolio_summary(portfolio):
     worst_pl = None
 
     for r in rows:
-        t, shares, avg_cost, price, value, unreal = r
+        t, shares, avg_cost, price, value, unreal = r # assigning a name to each value
         if total_value > 0:
             weight = (value / total_value) * 100
         else:
             weight = 0
 
-        print(f"{t:<8} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f} {unreal:>12.2f} {weight:>7.2f}%")
+        print(f"{t:<8} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f}"
+              f" {unreal:>12.2f} {weight:>7.2f}%")
 
+        # iterating through each stock and seeing which one has the best and worst P/L
         if best_pl is None or unreal > best_pl:
             best_pl = unreal
             best_t = t
@@ -231,7 +236,7 @@ def rebalance_suggestions(portfolio):
     for t in tickers:
         while True:
             try:
-                w = float(input(f"Target weight for {t} (%): ").strip())
+                w = float(input(f"Target weight for {t} (in %): ").strip())
                 if w < 0:
                     print("Weight must be >= 0.")
                     continue
@@ -241,7 +246,7 @@ def rebalance_suggestions(portfolio):
             except:
                 print("Invalid number.")
 
-    if total_w == 0:
+    if total_w == 0: # error handling, because total weight (denominator) cannot be zero
         print("All weights are 0. Nothing to do.")
         return
 
@@ -261,12 +266,18 @@ def rebalance_suggestions(portfolio):
         price = prices[t]  # NEW: needed to convert € gap to shares
 
         if gap > 0:
-            shares_to_buy = gap / price if price > 0 else 0
-            print(f"{t}: BUY about {gap:.2f} worth (~{shares_to_buy:.2f} shares)")
+            if price > 0:
+                shares_to_buy = gap / price
+            else:
+                shares_to_buy = 0
+            print(f"{t}: BUY about {gap:.2f} worth (about {shares_to_buy:.2f} shares)")
         elif gap < 0:
             sell_amount = abs(gap)
-            shares_to_sell = sell_amount / price if price > 0 else 0
-            print(f"{t}: SELL about {sell_amount:.2f} worth (~{shares_to_sell:.2f} shares)")
+            if price > 0:
+                shares_to_sell = sell_amount / price
+            else:
+                shares_to_sell = 0
+            print(f"{t}: SELL about {sell_amount:.2f} worth (about {shares_to_sell:.2f} shares)")
         else:
             print(f"{t}: already on target")
 
@@ -294,5 +305,5 @@ def main():
             print("Invalid option.")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": #chatgpt recommended this instead of just main()
     main()
