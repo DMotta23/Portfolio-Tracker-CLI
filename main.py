@@ -7,6 +7,10 @@ import yfinance as yf
 # MENU
 # ---------------------------
 def print_menu():
+    """
+    Prints the main portfolio menu
+    :return: None
+    """
     print("\n==== PORTFOLIO MANAGER ====")
     print("1) Manage holdings")
     print("2) Portfolio summary")
@@ -20,8 +24,9 @@ def print_menu():
 # ---------------------------
 def show_basic_ticker_info(ticker):
     """
-    Prints very basic info about the ticker: exchange, currency, current price.
-    If it fails, it just prints a warning and continues (doesn't block the user).
+    Fetches and prints basic info about a ticker and checks if it is valid
+    :param ticker: stock symbol entered by the user
+    :return: True if ticker is valid, False otherwise
     """
     try:
         tk = yf.Ticker(ticker)
@@ -55,6 +60,11 @@ def show_basic_ticker_info(ticker):
 # portfolio = {"AAPL": {"shares": 5.0, "avg_cost": 150.0}, ...}
 # ---------------------------
 def manage_holdings(portfolio):
+    """
+    Lets the user add, update, remove and view holdings
+    :param portfolio: dictionary with the current portfolio positions
+    :return: None
+    """
     while True:
         print("\n-- Manage holdings --")
         print("1) Add/Update holding")
@@ -114,6 +124,11 @@ def manage_holdings(portfolio):
 # simplest possible: fetch each ticker one by one, if not, user inputs prices manually
 # ---------------------------
 def fetch_prices(tickers):
+    """
+    Fetches the latest price for each ticker from Yahoo Finance
+    :param tickers: list of ticker symbols
+    :return: dictionary mapping each ticker to its latest price (or None)
+    """
     prices = {}
     for t in tickers:
         try:
@@ -128,6 +143,11 @@ def fetch_prices(tickers):
 
 
 def manual_fix_prices(prices):
+    """
+    Asks the user to manually input prices that could not be fetched
+    :param prices: dictionary of ticker prices (some may be None)
+    :return: updated dictionary with valid prices
+    """
     fixed = {}
     for t in prices:
         p = prices[t]
@@ -151,6 +171,11 @@ def manual_fix_prices(prices):
 # STOCK INFO
 # ---------------------------
 def view_stock_info_from_holdings(portfolio):
+    """
+    Shows detailed company information for a selected holding
+    :param portfolio: dictionary of current holdings
+    :return: None
+    """
     if len(portfolio) == 0:
         print("\nPortfolio is empty. Add holdings first.")
         return
@@ -282,6 +307,11 @@ def view_stock_info_from_holdings(portfolio):
 # SUMMARY
 # ---------------------------
 def portfolio_summary(portfolio):
+    """
+    Computes and prints the portfolio valuation and unrealized P/L
+    :param portfolio: dictionary of holdings
+    :return: None
+    """
     if len(portfolio) == 0:
         print("\nPortfolio is empty. Add holdings first.")
         return
@@ -364,6 +394,11 @@ def portfolio_summary(portfolio):
 # REBALANCE
 # ---------------------------
 def rebalance_suggestions(portfolio):
+    """
+    Suggests buy/sell amounts to reach target portfolio weights
+    :param portfolio: dictionary of holdings
+    :return: None
+    """
     if len(portfolio) == 0:
         print("Portfolio is empty.")
         return
@@ -441,6 +476,10 @@ def rebalance_suggestions(portfolio):
 # MAIN
 # ---------------------------
 def main():
+    """
+    Runs the main portfolio manager loop
+    :return: None
+    """
     portfolio = {}
 
     while True:
