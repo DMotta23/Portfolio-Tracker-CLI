@@ -13,10 +13,10 @@ def print_menu():
     :return: None
     """
     print("\n==== PORTFOLIO MANAGER ====")
-    print("1) Manage holdings")
+    print("1) Add/Manage holdings")
     print("2) Portfolio summary")
     print("3) Rebalance suggestions")
-    print("4) View stock info from holdings")
+    print("4) View stock info from portfolio")
     print("5) Trendline price chart (multiple timeframes)")
     print("0) Exit")
 
@@ -86,7 +86,7 @@ def manage_holdings(portfolio):
                 continue #restarts loop if False
 
             try:
-                shares = float(input("Shares: ").strip())
+                shares = float(input("Number of shares: ").strip())
                 avg_cost = float(input("Average cost per share: ").strip())
             except ValueError:
                 print("Invalid number.")
@@ -195,7 +195,7 @@ def view_stock_info_from_holdings(portfolio):
         return
 
     try:
-        i_stock = int(choice) - 1
+        i_stock = int(choice) - 1 # stock index
     except ValueError:
         print("Invalid option.")
         return
@@ -252,7 +252,7 @@ def view_stock_info_from_holdings(portfolio):
 
         print("\n--- Size & financials ---")
 
-        if market_cap is not None:
+        if market_cap is not None: # required to ensure correct output formatting
             print("Market cap:", f"{market_cap:,.0f}")
         else:
             print("Market cap: N/A")
@@ -305,7 +305,7 @@ def view_stock_info_from_holdings(portfolio):
         print("Could not fetch company info right now.")
 
 
-def plot_price_trend_from_holdings(portfolio):
+def plot_price_trend_from_holdings(portfolio): # using matplotlib
     """
     Plots a simple trendline chart of a selected holding's price.
     :param portfolio: dictionary of holdings
@@ -315,7 +315,7 @@ def plot_price_trend_from_holdings(portfolio):
         print("\nPortfolio is empty. Add holdings first.")
         return
 
-    tickers = list(portfolio.keys())
+    tickers = list(portfolio.keys()) # same code as view_stock_info_from_holdings()
 
     print("\n-- Available holdings --")
     for i in range(len(tickers)):
@@ -336,7 +336,7 @@ def plot_price_trend_from_holdings(portfolio):
         print("Invalid option.")
         return
 
-    ticker = tickers[i_stock]
+    ticker = tickers[i_stock] # getting ticker from list of portfolio dict using stock index
 
     print("\nChoose a timeframe:")
     print("1) 1w")
@@ -347,9 +347,9 @@ def plot_price_trend_from_holdings(portfolio):
     print("6) 5y")
     print("7) 10y")
     print("8) all")
-    tf = input("Choose: ").strip()
+    tf = input("Choose timeframe number: ").strip()
 
-    # timeframe mapping (simple and stable)
+    # timeframe mapping
     if tf == "1":
         period = "5d"
         interval = "1h"
@@ -388,7 +388,7 @@ def plot_price_trend_from_holdings(portfolio):
 
     try:
         tk = yf.Ticker(ticker)
-        hist = tk.history(period=period, interval=interval)
+        hist = tk.history(period=period, interval=interval) # changes depending on if statement above
 
         if hist.empty:
             print("No price data found for this timeframe.")
@@ -402,8 +402,8 @@ def plot_price_trend_from_holdings(portfolio):
         plt.title(f"{ticker} Price Trend ({title_tf})")
         plt.xlabel("Date")
         plt.ylabel("Close Price")
-        plt.xticks(rotation=30)
-        plt.tight_layout()
+        plt.xticks(rotation=30) # date needs to be slightly tilted in order to fit on graph
+        plt.tight_layout() # fixes margins and spacing
         plt.show()
 
     except Exception:
@@ -423,12 +423,15 @@ def portfolio_summary(portfolio):
         print("\nPortfolio is empty. Add holdings first.")
         return
 
-    tickers = []
-    for t in portfolio:
-        tickers.append(t)
+    tickers = list(portfolio.keys())
+
+    # easier way of extracting tickers from portfolio dict
+    # tickers = []
+    # for t in portfolio:
+    #     tickers.append(t)
 
     prices = fetch_prices(tickers)
-    prices = manual_fix_prices(prices)
+    prices = manual_fix_prices(prices) # just in case yahoo finance cannot get stock price
 
     total_value = 0.0
     total_cost = 0.0
@@ -436,13 +439,13 @@ def portfolio_summary(portfolio):
     rows = []
 
     for t in tickers:
-        shares = portfolio[t]["shares"]
+        shares = portfolio[t]["shares"] # no need to use .get(), as we're sure that the ticker exists
         avg_cost = portfolio[t]["avg_cost"]
         price = prices[t]
 
-        value = shares * price
-        cost = shares * avg_cost
-        unreal = (price - avg_cost) * shares
+        value = shares * price # total stock value
+        cost = shares * avg_cost # total stock cost
+        unreal = (price - avg_cost) * shares # total stock P/L
 
         # unrealized % for each position
         if avg_cost > 0:
@@ -450,9 +453,9 @@ def portfolio_summary(portfolio):
         else:
             unreal_pct = 0.0
 
-        total_value = total_value + value
-        total_cost = total_cost + cost
-        total_unreal = total_unreal + unreal
+        total_value += value
+        total_cost += cost
+        total_unreal += unreal
 
         rows.append([t, shares, avg_cost, price, value, unreal, unreal_pct])
 
@@ -481,15 +484,15 @@ def portfolio_summary(portfolio):
         if total_value > 0:
             weight = (value / total_value) * 100
         else:
-            weight = 0
+            weight = 0 # since if total_value = 0, the program crashes
 
         print(f"{t:<8} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f}"
               f" {unreal:>12.2f} {unreal_pct:>9.2f}% {weight:>7.2f}%")
 
-        if best_pl is None or unreal > best_pl:
+        if best_pl is None or unreal > best_pl: # iterating through each ticker and updating best performance
             best_pl = unreal
             best_t = t
-        if worst_pl is None or unreal < worst_pl:
+        if worst_pl is None or unreal < worst_pl: # same but worst performance
             worst_pl = unreal
             worst_t = t
 
@@ -510,9 +513,11 @@ def rebalance_suggestions(portfolio):
         print("Portfolio is empty.")
         return
 
-    tickers = []
-    for t in portfolio:
-        tickers.append(t)
+    tickers = list(portfolio.keys())
+
+    # tickers = []
+    # for t in portfolio:
+    #     tickers.append(t)
 
     prices = fetch_prices(tickers)
     prices = manual_fix_prices(prices)
@@ -520,7 +525,7 @@ def rebalance_suggestions(portfolio):
     total_value = 0.0
     values = {}
     for t in tickers:
-        v = portfolio[t]["shares"] * prices[t]
+        v = portfolio[t]["shares"] * prices[t] # total current value of one stock
         values[t] = v
         total_value += v
 
@@ -556,19 +561,19 @@ def rebalance_suggestions(portfolio):
     print("Targets normalized to sum to 100%.\n")
 
     for t in tickers:
-        current_val = values[t]
-        target_val = (targets[t] / 100) * total_value
-        gap = target_val - current_val
+        current_val = values[t] # how much this stock is worth now (total)
+        target_val = (targets[t] / 100) * total_value # how much this stock should be worth (total) in the portfolio
+        gap = target_val - current_val # how much should be bought/sold in total to reach target_val
 
         price = prices[t]
 
-        if gap > 0:
+        if gap > 0: # then BUY more to reach desired weight
             if price > 0:
                 shares_to_buy = gap / price
             else:
-                shares_to_buy = 0
+                shares_to_buy = 0 # in case share price fell to 0
             print(f"{t}: BUY about {gap:.2f} worth (about {shares_to_buy:.2f} shares)")
-        elif gap < 0:
+        elif gap < 0: # then SELL more
             sell_amount = abs(gap)
             if price > 0:
                 shares_to_sell = sell_amount / price
@@ -591,7 +596,7 @@ def main():
 
     while True:
         print_menu()
-        choice = input("Choose an option: ").strip()
+        choice = input("Choose an option number: ").strip()
 
         if choice == "1":
             manage_holdings(portfolio)
