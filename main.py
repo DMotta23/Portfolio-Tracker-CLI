@@ -17,7 +17,7 @@ def print_menu():
     print("2) Portfolio summary")
     print("3) Rebalance suggestions")
     print("4) View stock info from holdings")
-    print("5) Trendline price chart (1w / 1m / 1y)")
+    print("5) Trendline price chart (multiple timeframes)")
     print("0) Exit")
 
 
@@ -37,7 +37,7 @@ def show_basic_ticker_info(ticker):
         exchange = info.get("exchange", "N/A")
         currency = info.get("currency", "N/A")
 
-        hist = tk.history(period="1d") # fetching recent price history, only need day 1
+        hist = tk.history(period="1d") # fetching recent price history, only need 1d
         if hist.empty: # checking if yahoo returned any data
             print("\nWarning: No price data found.")
             print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA, .L, .PA).")
@@ -75,15 +75,15 @@ def manage_holdings(portfolio):
         print("0) Back")
         choice = input("Choose: ").strip()
 
-        if choice == "1":
+        if choice == "1": # add or update/overwrite tickers
             ticker = input("Ticker (e.g., AAPL): ").strip().upper()
             if ticker == "":
                 print("Ticker cannot be empty.")
-                continue
+                continue # restarts loop
 
             # show basic info after ticker is entered; if False, it skips saving and restarts while loop
             if show_basic_ticker_info(ticker) == False:
-                continue
+                continue #restarts loop if False
 
             try:
                 shares = float(input("Shares: ").strip())
@@ -99,7 +99,7 @@ def manage_holdings(portfolio):
             portfolio[ticker] = {"shares": shares, "avg_cost": avg_cost}
             print("Saved:", ticker)
 
-        elif choice == "2":
+        elif choice == "2": # removing tickers
             ticker = input("Ticker to remove: ").strip().upper()
             if ticker in portfolio:
                 del portfolio[ticker]
@@ -107,7 +107,7 @@ def manage_holdings(portfolio):
             else:
                 print("Not found.")
 
-        elif choice == "3":
+        elif choice == "3": # viewing tickers
             if len(portfolio) == 0:
                 print("Portfolio is empty.")
             else:
@@ -115,7 +115,7 @@ def manage_holdings(portfolio):
                     info = portfolio[t]
                     print(f"{t}: {info['shares']} shares @ avg cost {info['avg_cost']}")
 
-        elif choice == "0":
+        elif choice == "0": # back option
             break
         else:
             print("Invalid option.")
@@ -136,9 +136,9 @@ def fetch_prices(tickers):
         try:
             hist = yf.Ticker(t).history(period="5d")
             if hist.empty:
-                prices[t] = None
+                prices[t] = None # if price cannot be found, None is assigned to the ticker's price, which will be altered later
             else:
-                prices[t] = float(hist["Close"].iloc[-1])
+                prices[t] = float(hist["Close"].iloc[-1]) # price was already found
         except Exception:
             prices[t] = None
     return prices
@@ -146,14 +146,14 @@ def fetch_prices(tickers):
 
 def manual_fix_prices(prices):
     """
-    Asks the user to manually input prices that could not be fetched
+    Asks the user to manually input prices that could not be fetched, making sure that all tickers have prices
     :param prices: dictionary of ticker prices (some may be None)
     :return: updated dictionary with valid prices
     """
     fixed = {}
     for t in prices:
         p = prices[t]
-        if p is not None:
+        if p is not None: # these are the prices that were already found
             fixed[t] = p
         else:
             while True:
@@ -163,7 +163,7 @@ def manual_fix_prices(prices):
                         print("Price must be > 0.")
                         continue
                     fixed[t] = val
-                    break
+                    break # leaves the while loop and moves onto the next ticker
                 except ValueError:
                     print("Invalid number.")
     return fixed
@@ -182,7 +182,7 @@ def view_stock_info_from_holdings(portfolio):
         print("\nPortfolio is empty. Add holdings first.")
         return
 
-    tickers = list(portfolio.keys())
+    tickers = list(portfolio.keys()) # extracting all tickers into one list
 
     print("\n-- Available holdings --")
     for i in range(len(tickers)):
