@@ -2,6 +2,59 @@
 #Course: Programming for Economists II
 import yfinance as yf
 import matplotlib.pyplot as plt
+import json
+import os
+
+
+# ---------------------------
+# LOADING/SAVING/DELETING FILE (CRUD)
+# ---------------------------
+# this code section was done and integrated using ChatGPT
+DATA_FILE = "portfolio_data.json"
+def load_data():
+    """
+    Loads portfolio data from a JSON file (if it exists).
+    :return: portfolio dictionary
+    """
+    if not os.path.exists(DATA_FILE):
+        return {} # returns empty dict in case file does not exist
+
+    try:
+        with open(DATA_FILE, "r") as f: # reading
+            data = json.load(f)
+            if "portfolio" in data:
+                return data["portfolio"]
+            return {} # empty dict if file exists but is empty
+    except Exception:
+        print("Warning: Could not load data file. Starting with empty portfolio.")
+        return {}
+
+def save_data(portfolio):
+    """
+    Saves portfolio data to a JSON file.
+    :param portfolio: dictionary of holdings
+    :return: None
+    """
+    data = {"portfolio": portfolio}
+    try:
+        with open(DATA_FILE, "w") as f: # writing
+            json.dump(data, f, indent=4) # indent improves readability
+    except Exception:
+        print("Warning: Could not save data file.")
+
+def delete_data_file():
+    """
+    Deletes the saved portfolio file if it exists
+    :return: None
+    """
+    if os.path.exists(DATA_FILE):
+        try:
+            os.remove(DATA_FILE)
+            print("Saved data deleted.")
+        except Exception:
+            print("Could not delete the data file.")
+    else:
+        print("No saved data file found.")
 
 
 # ---------------------------
@@ -13,11 +66,12 @@ def print_menu():
     :return: None
     """
     print("\n==== PORTFOLIO MANAGER ====")
-    print("1) Add/Manage holdings")
+    print("1) Add/manage holdings")
     print("2) Portfolio summary")
     print("3) Rebalance suggestions")
     print("4) View stock info from portfolio")
     print("5) Trendline price chart (multiple timeframes)")
+    print("6) Delete saved data")
     print("0) Exit")
 
 
@@ -73,7 +127,7 @@ def manage_holdings(portfolio):
         print("2) Remove holding")
         print("3) View holdings")
         print("0) Back")
-        choice = input("Choose: ").strip()
+        choice = input("Choose a number: ").strip()
 
         if choice == "1": # add or update/overwrite tickers
             ticker = input("Ticker (e.g., AAPL): ").strip().upper()
@@ -97,12 +151,14 @@ def manage_holdings(portfolio):
                 continue
 
             portfolio[ticker] = {"shares": shares, "avg_cost": avg_cost}
+            save_data(portfolio) # saving file
             print("Saved:", ticker)
 
         elif choice == "2": # removing tickers
             ticker = input("Ticker to remove: ").strip().upper()
             if ticker in portfolio:
                 del portfolio[ticker]
+                save_data(portfolio) # saving file
                 print("Removed:", ticker)
             else:
                 print("Not found.")
@@ -592,7 +648,8 @@ def main():
     Runs the main portfolio manager loop
     :return: None
     """
-    portfolio = {}
+    # portfolio = {}
+    portfolio = load_data() # loading portfolio from existing file
 
     while True:
         print_menu()
@@ -608,6 +665,9 @@ def main():
             view_stock_info_from_holdings(portfolio)
         elif choice == "5":
             plot_price_trend_from_holdings(portfolio)
+        elif choice == "6":
+            delete_data_file()
+            portfolio = {} # resetting memory, as without this line, the portfolio would remain in the memory
         elif choice == "0":
             print("Goodbye!")
             break

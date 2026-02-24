@@ -1,0 +1,16 @@
+{
+    "portfolio": {
+        "AAPL": {
+            "shares": 20.0,
+            "avg_cost": 200.0
+        },
+        "GOOG": {
+            "shares": 140.0,
+            "avg_cost": 150.0
+        },
+        "MSFT": {
+            "shares": 20.0,
+            "avg_cost": 360.0
+        }
+    }
+}
