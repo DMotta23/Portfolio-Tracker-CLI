@@ -677,5 +677,3 @@ def main():
 
 if __name__ == "__main__": #ChatGPT recommended this instead of just main()
     main()
-
-print("Diogo is g_y , fill the gap")
