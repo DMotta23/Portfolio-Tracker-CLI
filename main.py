@@ -58,6 +58,35 @@ def delete_data_file():
 
 
 # ---------------------------
+# METADATA FETCHER
+# ---------------------------
+def get_ticker_metadata(ticker): # Makes it easier to pull exchange and currency later without using Yahoo API
+    """
+    Fetches basic ticker metadata from Yahoo Finance.
+    :param ticker: stock symbol
+    :return: dict with metadata OR None if invalid
+    """
+    try:
+        tk = yf.Ticker(ticker)
+        info = tk.info # dict with company data
+
+        hist = tk.history(period="1d")
+        if hist.empty: # checking if yahoo returned any data
+            return None
+
+        price = float(hist["Close"].iloc[-1]) # selecting close column, and returning the last ROW
+
+        return {
+            "exchange": info.get("exchange", "N/A"),
+            "currency": info.get("currency", "N/A"),
+            "price": price,
+        }
+
+    except Exception: # catching exception in case fetching metadata fails
+        return None
+
+
+# ---------------------------
 # MENU
 # ---------------------------
 def print_menu():
@@ -82,33 +111,27 @@ def show_basic_ticker_info(ticker):
     """
     Fetches and prints basic info about a ticker and checks if it is valid
     :param ticker: stock symbol entered by the user
-    :return: True if ticker is valid, False otherwise
+    :return: metadata dict if valid, None otherwise
     """
-    try:
-        tk = yf.Ticker(ticker)
 
-        info = tk.info  # dict with company data
-        exchange = info.get("exchange", "N/A")
-        currency = info.get("currency", "N/A")
+    data = get_ticker_metadata(ticker)
 
-        hist = tk.history(period="1d") # fetching recent price history, only need 1d
-        if hist.empty: # checking if yahoo returned any data
-            print("\nWarning: No price data found.")
-            print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA, .L, .PA).")
-            return False
-        else:
-            price = float(hist["Close"].iloc[-1]) # selecting close column, and returning the last ROW
+    if data is None:
+        print("\nWarning: No price data found.")
+        print("Ticker may be invalid, delisted, or require a suffix (e.g., .SA, .L, .PA).")
+        return None
 
-        print("\n--- Ticker info ---")
-        print("Exchange:", exchange)
-        print("Currency:", currency)
-        print(f"Current price: {price:.2f}")
-        print("-------------------\n")
-        return True
+    exchange = data["exchange"]
+    currency = data["currency"]
+    price = data["price"]
 
-    except Exception: # fetching exceptions which are not user errors
-        print("Could not fetch ticker info.")
-        return False
+    print("\n--- Ticker info ---")
+    print("Exchange:", exchange)
+    print("Currency:", currency)
+    print(f"Current price: {price:.2f}")
+    print("-------------------\n")
+
+    return data
 
 
 # ---------------------------
@@ -133,11 +156,12 @@ def manage_holdings(portfolio):
             ticker = input("Ticker (e.g., AAPL): ").strip().upper()
             if ticker == "":
                 print("Ticker cannot be empty.")
-                continue # restarts loop
+                continue # restarts while loop due to incorrect ticker input
 
-            # show basic info after ticker is entered; if False, it skips saving and restarts while loop
-            if show_basic_ticker_info(ticker) == False:
-                continue #restarts loop if False
+            # in case there's an error fetching metadata, while loop restarts
+            info_meta = show_basic_ticker_info(ticker)
+            if info_meta is None:
+                continue
 
             try:
                 shares = float(input("Number of shares: ").strip())
@@ -150,7 +174,11 @@ def manage_holdings(portfolio):
                 print("Shares and avg_cost must be > 0.")
                 continue
 
-            portfolio[ticker] = {"shares": shares, "avg_cost": avg_cost}
+            portfolio[ticker] = {
+                "shares": shares,
+                "avg_cost": avg_cost,
+                "currency": info_meta["currency"],
+            } # creating dict which will be saved
             save_data(portfolio) # saving file
             print("Saved:", ticker)
 
@@ -169,7 +197,8 @@ def manage_holdings(portfolio):
             else:
                 for t in portfolio:
                     info = portfolio[t]
-                    print(f"{t}: {info['shares']} shares @ avg cost {info['avg_cost']}")
+                    cur = info.get("currency", "N/A")
+                    print(f"{t}: {info['shares']} shares @ avg cost {info['avg_cost']} ({cur})")
 
         elif choice == "0": # back option
             break
@@ -486,6 +515,16 @@ def portfolio_summary(portfolio):
     # for t in portfolio:
     #     tickers.append(t)
 
+# currency code below done with ChatGPT to identify different
+    currencies = set() # similar to lists, but no duplicated are allowed
+    for t in portfolio:
+        cur = portfolio[t].get("currency")
+        if cur: # An actual currency (truthy value), not False, None, 0, etc...
+            currencies.add(cur)
+    if len(currencies) > 1: # means that there's more than one currency
+        print("\n⚠️ Warning: Portfolio contains multiple currencies:", ", ".join(sorted(currencies))) # sorts currencies into alphabetical order and joins each element into one string
+        print("Totals may not be directly comparable without FX conversion.\n")
+
     prices = fetch_prices(tickers)
     prices = manual_fix_prices(prices) # just in case yahoo finance cannot get stock price
 
@@ -498,6 +537,7 @@ def portfolio_summary(portfolio):
         shares = portfolio[t]["shares"] # no need to use .get(), as we're sure that the ticker exists
         avg_cost = portfolio[t]["avg_cost"]
         price = prices[t]
+        currency = portfolio[t].get("currency", "N/A")
 
         value = shares * price # total stock value
         cost = shares * avg_cost # total stock cost
@@ -513,7 +553,7 @@ def portfolio_summary(portfolio):
         total_cost += cost
         total_unreal += unreal
 
-        rows.append([t, shares, avg_cost, price, value, unreal, unreal_pct])
+        rows.append([t, currency, shares, avg_cost, price, value, unreal, unreal_pct])
 
     # total unrealized % (based on total cost)
     if total_cost > 0:
@@ -526,9 +566,9 @@ def portfolio_summary(portfolio):
     print(f"Total cost: {total_cost:.2f}")
     print(f"Total unrealized P/L: {total_unreal:.2f} ({total_unreal_pct:.2f}%)\n")
 
-    print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
-          f" {'Unreal P/L':>12} {'Unreal P/L (%)':>10} {'Weight':>8}")
-    print("-" * 96)
+    print(f"{'Ticker':<10} {'Curr':<6} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
+          f" {'Unreal P/L':>12} {'Unreal P/L (%)':>14} {'Weight':>8}")
+    print("-" * 120)
 
     best_t = None
     best_pl = None
@@ -536,15 +576,15 @@ def portfolio_summary(portfolio):
     worst_pl = None
 
     for r in rows:
-        t, shares, avg_cost, price, value, unreal, unreal_pct = r  # assigning name to each value
+        t, currency, shares, avg_cost, price, value, unreal, unreal_pct = r  # assigning name to each value
 
         if total_value > 0:
             weight = (value / total_value) * 100
         else:
             weight = 0 # since if total_value = 0, the program crashes
 
-        print(f"{t:<8} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f}"
-              f" {unreal:>12.2f} {unreal_pct:>9.2f}% {weight:>7.2f}%")
+        print(f"{t:<10} {currency:<6} {shares:>10.2f} {avg_cost:>10.2f} {price:>10.2f} {value:>12.2f}"
+              f" {unreal:>12.2f} {unreal_pct:>13.2f}% {weight:>7.2f}%")
 
         if best_pl is None or unreal > best_pl: # iterating through each ticker and updating best performance
             best_pl = unreal
@@ -553,8 +593,10 @@ def portfolio_summary(portfolio):
             worst_pl = unreal
             worst_t = t
 
-    print("\nBiggest winner (unrealized):", best_t, f"{best_pl:.2f}")
-    print("Biggest loser  (unrealized):", worst_t, f"{worst_pl:.2f}")
+    best_t_currency = portfolio[best_t]["currency"]
+    worst_t_currency = portfolio[worst_t]["currency"]
+    print("\nBiggest winner (unrealized):", best_t, f"{best_pl:.2f} ({best_t_currency})")
+    print("Biggest loser  (unrealized):", worst_t, f"{worst_pl:.2f} ({worst_t_currency})")
 
 
 # ---------------------------
@@ -623,20 +665,21 @@ def rebalance_suggestions(portfolio):
         gap = target_val - current_val # how much should be bought/sold in total to reach target_val
 
         price = prices[t]
+        currency = portfolio[t].get("currency", "")
 
         if gap > 0: # then BUY more to reach desired weight
             if price > 0:
                 shares_to_buy = gap / price
             else:
                 shares_to_buy = 0 # in case share price fell to 0
-            print(f"{t}: BUY about {gap:.2f} worth (about {shares_to_buy:.2f} shares)")
+            print(f"{t}: BUY about {gap:.2f} {currency} (about {shares_to_buy:.2f} shares)")
         elif gap < 0: # then SELL more
             sell_amount = abs(gap)
             if price > 0:
                 shares_to_sell = sell_amount / price
             else:
                 shares_to_sell = 0
-            print(f"{t}: SELL about {sell_amount:.2f} worth (about {shares_to_sell:.2f} shares)")
+            print(f"{t}: SELL about {sell_amount:.2f} {currency} (about {shares_to_sell:.2f} shares)")
         else:
             print(f"{t}: already on target")
 

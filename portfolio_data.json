@@ -1,16 +1,19 @@
 {
     "portfolio": {
+        "PETR4.SA": {
+            "shares": 400.0,
+            "avg_cost": 25.0,
+            "currency": "BRL"
+        },
         "AAPL": {
-            "shares": 20.0,
-            "avg_cost": 200.0
+            "shares": 25.0,
+            "avg_cost": 200.0,
+            "currency": "USD"
         },
-        "GOOG": {
-            "shares": 140.0,
-            "avg_cost": 150.0
-        },
-        "MSFT": {
+        "NVDA": {
             "shares": 20.0,
-            "avg_cost": 360.0
+            "avg_cost": 180.0,
+            "currency": "USD"
         }
     }
 }
