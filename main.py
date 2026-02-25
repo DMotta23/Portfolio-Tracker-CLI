@@ -523,6 +523,7 @@ def portfolio_summary(portfolio):
 
     print("\n===== PORTFOLIO SUMMARY =====")
     print(f"Total value: {total_value:.2f}")
+    print(f"Total cost: {total_cost:.2f}")
     print(f"Total unrealized P/L: {total_unreal:.2f} ({total_unreal_pct:.2f}%)\n")
 
     print(f"{'Ticker':<8} {'Shares':>10} {'AvgCost':>10} {'Price':>10} {'Value':>12}"
